@@ -1,0 +1,42 @@
+#!/usr/bin/python
+
+import os
+import sys
+
+import eyeD3
+
+if __name__ == '__main__':
+  if len(sys.argv) < 2:
+    raise RuntimeError('Need to specify MP3 as first argument')
+  infile = sys.argv[1]
+  if not os.path.exists(infile):
+    raise RuntimeError('Input file "%s" does not exist' % infile)
+
+  tag = eyeD3.Tag()
+  if os.path.isdir(infile):
+    files = [infile + file for file in os.listdir(infile)]
+  elif os.path.isfile(infile):
+    files = [infile]
+  else:
+    print "WOOPS"; print infile
+
+  artists, albums, titles = [], [], []
+  for file in files:
+    tag.link(file)
+    artists.append(len(tag.getArtist()))
+    albums.append(len(tag.getAlbum()))
+    titles.append(len(tag.getTitle()))
+  lengths = [max(x) for x in (artists, albums, titles)]
+
+  print '-' * (sum(lengths) + 4)
+  print "|%s|" % "|".join(s.center(lengths[length]) for length, s in enumerate(('artist', 'album', 'title')))
+  print '-' * (sum(lengths) + 4)
+  for file in files:
+    tag.link(file)
+    artist, album, title = tag.getArtist(), tag.getAlbum(), tag.getTitle()
+    tag.header.setVersion(eyeD3.ID3_V2_3)
+    tag.setArtist(artist[1:])
+    #tag.update()
+    if sum(len(s) for s in (album, artist, title)) == 0: continue
+    print "|%s|" % "|".join(s.center(lengths[length]) for length, s in enumerate((artist, album, title)))
+  print '-' * (sum(lengths) + 4)
