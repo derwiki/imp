@@ -18,8 +18,9 @@ if __name__ == '__main__':
   elif os.path.isfile(infile):
     files = [infile]
   else:
-    print "WOOPS"; print infile
+    raise RuntimeError("Didn't know how to open file: %s" % infile)
 
+  # get maximum values so we can space appropriately
   artists, albums, titles = [], [], []
   for file in files:
     tag.link(file)
@@ -27,6 +28,15 @@ if __name__ == '__main__':
     albums.append(len(tag.getAlbum()))
     titles.append(len(tag.getTitle()))
   lengths = [max(x) for x in (artists, albums, titles)]
+
+  # operations to perform?
+  fieldset = dict()
+  for arg in sys.argv[2:]:
+    if arg.startswith('--'):
+      field, value = arg[2:].split('=')
+      if field in ('artist', 'album', 'title'):
+        fieldset[field] = value
+  print fieldset
 
   print '-' * (sum(lengths) + 4)
   print "|%s|" % "|".join(s.center(lengths[length]) for length, s in enumerate(('artist', 'album', 'title')))
@@ -40,3 +50,4 @@ if __name__ == '__main__':
     if sum(len(s) for s in (album, artist, title)) == 0: continue
     print "|%s|" % "|".join(s.center(lengths[length]) for length, s in enumerate((artist, album, title)))
   print '-' * (sum(lengths) + 4)
+
