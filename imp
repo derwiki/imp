@@ -1,18 +1,57 @@
 #!/usr/bin/python
 
 import os
+import string
 import sys
 
 import eyeD3
 
+fields = ('artist', 'album', 'title')
+
+def get_songs_from_files(files):
+  """Yield dictionaries of song data for a list of files"""
+  tag = eyeD3.Tag()
+  formatter = lambda field: 'get%s' % string.capwords(field)
+  for file in files:
+    if not file.endswith('.mp3'): continue
+    tag.link(file)
+    song = dict(filename=file)
+    song.update(
+       dict((
+        field,
+        getattr(tag, formatter(field))()
+        ) for field in fields
+      )
+    )
+    yield song
+
+def prettyprint(songs):
+  """Table formatted representation of list of song dictionaries"""
+
+  #TODO this could be a dictionary comprehension, but is beyong me at the moment
+  maxlength = dict()
+  for field in fields:
+    maxlength[field] = max(len(song[field]) for song in songs)
+
+  def printspacer():
+    print '-' * (sum(maxlength.values()) + len(fields) + 1)
+
+  printspacer()
+  print "|%s|" % "|".join(s.center(maxlength[s]) for s in fields)
+  printspacer()
+  for song in songs:
+    if sum(len(s) for s in song.values()) == 0: continue
+    print "|%s|" % "|".join(song[field].center(maxlength[field]) for field in fields)
+  printspacer()
+
 if __name__ == '__main__':
+  print sys.argv
   if len(sys.argv) < 2:
     raise RuntimeError('Need to specify MP3 as first argument')
   infile = sys.argv[1]
   if not os.path.exists(infile):
     raise RuntimeError('Input file "%s" does not exist' % infile)
 
-  tag = eyeD3.Tag()
   if os.path.isdir(infile):
     files = [infile + file for file in os.listdir(infile)]
   elif os.path.isfile(infile):
@@ -20,34 +59,15 @@ if __name__ == '__main__':
   else:
     raise RuntimeError("Didn't know how to open file: %s" % infile)
 
-  # get maximum values so we can space appropriately
-  artists, albums, titles = [], [], []
-  for file in files:
-    tag.link(file)
-    artists.append(len(tag.getArtist()))
-    albums.append(len(tag.getAlbum()))
-    titles.append(len(tag.getTitle()))
-  lengths = [max(x) for x in (artists, albums, titles)]
-
   # operations to perform?
   fieldset = dict()
   for arg in sys.argv[2:]:
     if arg.startswith('--'):
       field, value = arg[2:].split('=')
-      if field in ('artist', 'album', 'title'):
+      if field in fields:
         fieldset[field] = value
   print fieldset
 
-  print '-' * (sum(lengths) + 4)
-  print "|%s|" % "|".join(s.center(lengths[length]) for length, s in enumerate(('artist', 'album', 'title')))
-  print '-' * (sum(lengths) + 4)
-  for file in files:
-    tag.link(file)
-    artist, album, title = tag.getArtist(), tag.getAlbum(), tag.getTitle()
-    tag.header.setVersion(eyeD3.ID3_V2_3)
-    tag.setArtist(artist[1:])
-    #tag.update()
-    if sum(len(s) for s in (album, artist, title)) == 0: continue
-    print "|%s|" % "|".join(s.center(lengths[length]) for length, s in enumerate((artist, album, title)))
-  print '-' * (sum(lengths) + 4)
+  songs = list(get_songs_from_files(files))
+  prettyprint(songs)
 
