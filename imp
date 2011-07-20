@@ -5,17 +5,19 @@ import string
 import sys
 
 import eyeD3
+from vendor.pyat import pyat
 
-fields = ('artist', 'album', 'title')
+get_fields = ('artist', 'album', 'title')
+display_fields = ('artist', 'album', 'title')
 
-def get_songs_from_files(files):
+def get_songs_from_files(files, fields):
   """Yield dictionaries of song data for a list of files"""
   tag = eyeD3.Tag()
   formatter = lambda field: 'get%s' % string.capwords(field)
-  for file in files:
-    if not file.endswith('.mp3'): continue
-    tag.link(file)
-    song = dict(filename=file)
+  for filename in files:
+    if not filename.endswith('.mp3'): continue
+    tag.link(filename)
+    song = dict(filename=filename, shortfilename=os.path.basename(filename))
     song.update(
        dict((
         field,
@@ -25,24 +27,16 @@ def get_songs_from_files(files):
     )
     yield song
 
-def prettyprint(songs):
-  """Table formatted representation of list of song dictionaries"""
 
-  #TODO this could be a dictionary comprehension, but is beyong me at the moment
-  maxlength = dict()
-  for field in fields:
-    maxlength[field] = max(len(song[field]) for song in songs)
-
-  def printspacer():
-    print '-' * (sum(maxlength.values()) + len(fields) + 1)
-
-  printspacer()
-  print "|%s|" % "|".join(s.center(maxlength[s]) for s in fields)
-  printspacer()
-  for song in songs:
-    if sum(len(s) for s in song.values()) == 0: continue
-    print "|%s|" % "|".join(song[field].center(maxlength[field]) for field in fields)
-  printspacer()
+def get_operations():
+  """Very rudimentary argv parser"""
+  fieldset = dict()
+  for arg in sys.argv[2:]:
+    if arg.startswith('--'):
+      field, value = arg[2:].split('=')
+      if field in get_fields:
+        fieldset[field] = value
+  return fieldset
 
 if __name__ == '__main__':
   print sys.argv
@@ -59,15 +53,9 @@ if __name__ == '__main__':
   else:
     raise RuntimeError("Didn't know how to open file: %s" % infile)
 
-  # operations to perform?
-  fieldset = dict()
-  for arg in sys.argv[2:]:
-    if arg.startswith('--'):
-      field, value = arg[2:].split('=')
-      if field in fields:
-        fieldset[field] = value
-  print fieldset
+  operations = get_operations()
+  print "Operations to perform: %s" % operations
 
-  songs = list(get_songs_from_files(files))
-  prettyprint(songs)
+  songs = list(get_songs_from_files(files, get_fields))
+  print pyat.format(songs, display_fields)
 

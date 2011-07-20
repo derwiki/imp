@@ -1,0 +1,3 @@
+[submodule "vendor/pyat"]
+	path = vendor/pyat
+	url = git@github.com:derwiki/pyat.git
