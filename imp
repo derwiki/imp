@@ -27,7 +27,6 @@ def get_songs_from_files(files, fields):
     )
     yield song
 
-
 def get_operations():
   """Very rudimentary argv parser"""
   fieldset = dict()
@@ -38,24 +37,41 @@ def get_operations():
         fieldset[field] = value
   return fieldset
 
+def set_fields(fields, infile):
+  tag = eyeD3.Tag()
+  tag.link(infile)
+  tag.header.setVersion(eyeD3.ID3_V2_3)
+  for field in get_fields:
+    if field in fields:
+      getattr(tag, 'set' + string.capwords(field))(fields[field])
+  tag.update()
+
 if __name__ == '__main__':
-  print sys.argv
   if len(sys.argv) < 2:
-    raise RuntimeError('Need to specify MP3 as first argument')
+    raise RuntimeError('Need to specify MP3 or directory as first argument')
   infile = sys.argv[1]
   if not os.path.exists(infile):
     raise RuntimeError('Input file "%s" does not exist' % infile)
 
   if os.path.isdir(infile):
-    files = [infile + file for file in os.listdir(infile)]
+    files = [infile + f for f in os.listdir(infile)]
+    filefilter = lambda f: os.path.isfile(f) and f.endswith('.mp3')
+    files = [f for f in files if filefilter(f)]
   elif os.path.isfile(infile):
     files = [infile]
   else:
     raise RuntimeError("Didn't know how to open file: %s" % infile)
 
+  songs = list(get_songs_from_files(files, get_fields))
+  print pyat.format(songs, display_fields)
+
   operations = get_operations()
   print "Operations to perform: %s" % operations
+  if operations:
+    for file in files:
+      set_fields(operations, file)
 
   songs = list(get_songs_from_files(files, get_fields))
   print pyat.format(songs, display_fields)
+
 
