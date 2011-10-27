@@ -48,21 +48,26 @@ def set_fields(fields, infile):
 
 if __name__ == '__main__':
   if len(sys.argv) < 2:
-    raise RuntimeError('Need to specify MP3 or directory as first argument')
-  infile = sys.argv[1]
-  if not os.path.exists(infile):
-    raise RuntimeError('Input file "%s" does not exist' % infile)
+    infile = './'
+    print "No input specified, using current directory"
+  else:
+    infile = sys.argv[1]
+    if not os.path.exists(infile):
+      raise RuntimeError('Input file "%s" does not exist' % infile)
 
   if os.path.isdir(infile):
+    print "Loading directory '%s'" % infile
     files = [infile + f for f in os.listdir(infile)]
     filefilter = lambda f: os.path.isfile(f) and f.endswith('.mp3')
     files = [f for f in files if filefilter(f)]
   elif os.path.isfile(infile):
+    print "File '%s' specified" % infile
     files = [infile]
   else:
     raise RuntimeError("Didn't know how to open file: %s" % infile)
 
   songs = list(get_songs_from_files(files, get_fields))
+  print songs
   print pyat.format(songs, display_fields)
 
   operations = get_operations()
